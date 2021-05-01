@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Rukai <rubickent@gmail.com>"]
 edition = "2018"
 description = "Rust driver that runs on the main processor and communicates to an ESP32 coprocessor running the AT firmware."
-keywords = ["wifi"]
+keywords = ["embedded-hal-driver", "wifi"]
 repository = "https://github.com/rukai/esp-at-driver"
 license = "MIT OR Apache-2.0"
 
@@ -12,3 +12,8 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 embedded-hal = "0.2.5"
+heapless = "0.6.1"
+nb = "1.0.0"
+
+[dev-dependencies]
+embedded-hal-mock = "0.7.2"

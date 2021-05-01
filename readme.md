@@ -3,7 +3,7 @@
 [![Crates.io](https://img.shields.io/crates/v/esp-at-driver.svg)](https://crates.io/crates/esp-at-driver)
 [![Released API docs](https://docs.rs/esp-at-driver/badge.svg)](https://docs.rs/esp-at-driver)
 
-Rust driver that runs on the main processor and communicates to an ESP coprocessor running the [AT firmware](https://github.com/espressif/esp-at)
+Rust driver that runs on the main processor and communicates to an ESP coprocessor running the [AT firmware](https://github.com/espressif/esp-at).
 
 My board hasn't actually arrived yet so this is all powered on wishful thinking and rust's type safety.
 
