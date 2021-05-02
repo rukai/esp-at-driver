@@ -19,7 +19,6 @@ jobs:
         toolchain: stable
     - name: Build
       run: |
-        rustup target add thumbv7em-none-eabihf
         cargo test
         cargo build --release
         cargo build --release --examples

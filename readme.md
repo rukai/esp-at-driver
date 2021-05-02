@@ -7,6 +7,12 @@ Rust driver that runs on the main processor and communicates to an ESP coprocess
 
 My board hasn't actually arrived yet so this is all powered on wishful thinking and rust's type safety.
 
+## Why Embassy/Async
+
+Implementing this crate with async means it is unable to run in some environments.
+However the expected use case of this library is on a main processor talking to an ESP coprocessor.
+In such an environment it is expected for the main processor to have enough storage for async binary sizes, likely an stm32 or nrf chip.
+
 ## Implementation
 
 The driver uses the AT commands documented [here](https://docs.espressif.com/projects/esp-at/en/latest/AT_Command_Set/index.html).

@@ -3,83 +3,68 @@
 // This has some nice examples of expected AT command usage:
 // https://docs.espressif.com/projects/esp-at/en/latest/AT_Command_Examples/TCP-IP_AT_Examples.html
 
-// Ah, the hal's directly implement these traits:
-// https://docs.rs/stm32f30x-hal/0.2.0/stm32f30x_hal/serial/struct.Rx.html
+use embassy::io::{AsyncWriteExt, AsyncBufReadExt};
 
-// TODO: Can we avoid using the block! macro?
-use nb::block;
-
-type ReadString = heapless::String<heapless::consts::U512>;
+type ReadLine = [u8; 512];
 
 #[derive(Debug)]
-pub struct EspAt<RX, TX>
+pub struct EspAt<T>
 where
-    TX: embedded_hal::serial::Write<u8>,
-    RX: embedded_hal::serial::Read<u8>,
+    T: AsyncWriteExt + AsyncBufReadExt + Unpin,
 {
-    tx: TX,
-    rx: RX,
+    uart: T,
 }
 
-impl<RX, TX> EspAt<RX, TX>
+impl<T> EspAt<T>
 where
-    TX: embedded_hal::serial::Write<u8>,
-    RX: embedded_hal::serial::Read<u8>,
+    T: AsyncWriteExt + AsyncBufReadExt + Unpin,
 {
-    pub fn new(tx: TX, rx: RX) -> Self {
-        Self { tx, rx }
+    pub fn new(uart: T) -> Self {
+        Self { uart }
     }
 
-    pub fn set_wifi_mode(&mut self, mode: WifiMode) -> Result<(), GenericError<TX::Error, RX::Error>> {
+    pub async fn set_wifi_mode(&mut self, mode: WifiMode) -> Result<(), GenericError> {
         match mode {
-            WifiMode::Disabled         => self.write_line(b"AT+CWMODE=0,1")?,
-            WifiMode::Station          => self.write_line(b"AT+CWMODE=1,1")?,
-            WifiMode::SoftAP           => self.write_line(b"AT+CWMODE=2,1")?,
-            WifiMode::StationAndSoftAP => self.write_line(b"AT+CWMODE=3,1")?,
+            WifiMode::Disabled         => self.write_line(b"AT+CWMODE=0,1").await?,
+            WifiMode::Station          => self.write_line(b"AT+CWMODE=1,1").await?,
+            WifiMode::SoftAP           => self.write_line(b"AT+CWMODE=2,1").await?,
+            WifiMode::StationAndSoftAP => self.write_line(b"AT+CWMODE=3,1").await?,
         }
-        let reply = self.read_line()?;
-        if reply == "OK" {
+        let reply = self.read_line().await?;
+        if &reply[0..2] == b"OK" {
             Ok(())
         } else {
             Err(GenericError::ATError(reply))
         }
     }
 
-    fn read_line(&mut self) -> Result<ReadString, GenericError<TX::Error, RX::Error>> {
-        let mut line = ReadString::new();
-        let mut prev_value = 'a';
-        loop {
-            let value = match block!(self.rx.read()) {
-                Ok(word) => word as char,
-                Err(e) => { return Err(GenericError::ReadError(e)); }
+    async fn read_line(&mut self) -> Result<ReadLine, GenericError> { // TODO: probably need to return multiple lines or something
+        let mut line = [0u8; 512];
+        let mut end = 0;
+        while end < 512 {
+            end += match self.uart.read(&mut line[end..]).await {
+                Ok(length) => length,
+                Err(e) => { return Err(GenericError::EmbassyError(e)); }
             };
 
-            if value != '\r' && value != '\n' {
-                if let Err(()) = line.push(value) {
-                    return Err(GenericError::ATResponseTooLong(line));
-                }
-            }
-            else if prev_value == '\r' && value == '\n' {
+            if end >= 2 && line[end-2] == b'\r' && line[end-1] == b'\n' { // TODO: fix this check
                 return Ok(line);
             }
-            prev_value = value;
         }
+        Err(GenericError::ATResponseTooLong(line))
     }
 
-    fn write_line(&mut self, data: &[u8]) -> Result<(), GenericError<TX::Error, RX::Error>> {
-        for x in data {
-            self.write_byte(*x)?;
-        }
-        self.write_byte(b'\r')?;
-        self.write_byte(b'\n')?;
+    async fn write_line(&mut self, data: &[u8]) -> Result<(), GenericError> {
+        self.write_data(data).await?;
+        self.write_data(b"\r\n").await?;
 
         Ok(())
     }
 
-    fn write_byte(&mut self, data: u8) -> Result<(), GenericError<TX::Error, RX::Error>> {
-        match block!(self.tx.write(data)) {
+    async fn write_data(&mut self, data: &[u8]) -> Result<(), GenericError> {
+        match self.uart.write_all(data).await {
             Ok(()) => Ok(()),
-            Err(e) => Err(GenericError::WriteError(e)),
+            Err(e) => Err(GenericError::EmbassyError(e)),
         }
     }
 }
@@ -88,19 +73,18 @@ where
 /// implementation, as defined by `embedded_hal::serial::Read<u8>::Error`
 /// and `embedded_hal::serial::Write<u8>::Error` respectively.
 #[derive(Debug)] // TODO: This is bad right??
-pub enum GenericError<TXE, RXE> {
-    WriteError(TXE),
-    ReadError(RXE),
-    ATError(ReadString),
-    ATResponseTooLong(ReadString),
+pub enum GenericError {
+    EmbassyError(embassy::io::Error),
+    ATError(ReadLine),
+    ATResponseTooLong(ReadLine),
 }
 
 pub enum WifiMode {
     /// Completely disable wifi RF activity.
     Disabled,
-    /// Act as a regular wifi client https://en.wikipedia.org/wiki/Station_(networking)
+    /// Act as a regular wifi client <https://en.wikipedia.org/wiki/Station_(networking)>
     Station,
-    /// Act as a wifi Access Point https://en.wikipedia.org/wiki/Wireless_access_point
+    /// Act as a wifi Access Point <https://en.wikipedia.org/wiki/Wireless_access_point>
     SoftAP,
     /// Act as both a regular wifi client and a wifi Access Point
     StationAndSoftAP,

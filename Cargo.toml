@@ -3,17 +3,16 @@ name = "esp-at-driver"
 version = "0.1.0"
 authors = ["Rukai <rubickent@gmail.com>"]
 edition = "2018"
-description = "Rust driver that runs on the main processor and communicates to an ESP32 coprocessor running the AT firmware."
-keywords = ["embedded-hal-driver", "wifi"]
+description = "Rust async driver that runs on the main processor and communicates to an ESP32 coprocessor running the AT firmware."
+keywords = ["esp", "esp32", "esp8266", "driver", "wifi"]
+categories = ["embedded", "no-std", "asynchronous"]
 repository = "https://github.com/rukai/esp-at-driver"
 license = "MIT OR Apache-2.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-embedded-hal = "0.2.5"
-heapless = "0.6.1"
-nb = "1.0.0"
+embassy-traits = { version = "0.1.0", git = "https://github.com/embassy-rs/embassy", rev = "632572d1cb29ab6badb87c74a95c120b4238f7c6", features = [] }
+embassy = { version = "0.1.0", git = "https://github.com/embassy-rs/embassy", rev = "632572d1cb29ab6badb87c74a95c120b4238f7c6", features = [] }
 
 [dev-dependencies]
-embedded-hal-mock = "0.7.2"
