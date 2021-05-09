@@ -1,4 +1,4 @@
-# ESP AT Driver
+# ESP AT Embassy Driver
 [![dependency status](https://deps.rs/repo/github/rukai/esp-at-driver/status.svg)](https://deps.rs/repo/github/rukai/esp-at-driver)
 [![Crates.io](https://img.shields.io/crates/v/esp-at-driver.svg)](https://crates.io/crates/esp-at-driver)
 [![Released API docs](https://docs.rs/esp-at-driver/badge.svg)](https://docs.rs/esp-at-driver)
