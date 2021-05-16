@@ -5,7 +5,7 @@
 
 Rust driver that runs on the main processor and communicates to an ESP coprocessor running the [AT firmware](https://github.com/espressif/esp-at).
 
-My board hasn't actually arrived yet so this is all powered on wishful thinking and rust's type safety.
+Extremely WIP, nothing works yet.
 
 ## Why Embassy/Async
 

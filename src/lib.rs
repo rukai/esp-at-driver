@@ -47,70 +47,70 @@ where
     /// Connect to the AP as configured in ConnectionConfig
     // TODO: return CWJAP<error code>
     pub async fn connect_to_access_point<'a>(&mut self, config: ConnectionConfig<'a>) -> Result<(), GenericEspAtError> {
-        self.write_data(b"AT+CWJAP=").await?;
+        self.direct_write(b"AT+CWJAP=").await?;
         if let Some(ssid) = config.ssid {
             // TODO: Escape character syntax is needed if SSID or password contains special characterss: ",\\
-            self.write_data(ssid.as_bytes()).await?;
+            self.direct_write(ssid.as_bytes()).await?;
         }
-        self.write_data(b",").await?;
+        self.direct_write(b",").await?;
         if let Some(password) = config.password {
-            self.write_data(password.as_bytes()).await?;
+            self.direct_write(password.as_bytes()).await?;
         }
-        self.write_data(b",").await?;
+        self.direct_write(b",").await?;
         if let Some(bssid) = config.bssid {
-            self.write_data(bssid.as_bytes()).await?;
+            self.direct_write(bssid.as_bytes()).await?;
         }
-        self.write_data(b",").await?;
+        self.direct_write(b",").await?;
         if let Some(rssi) = config.rssi {
-            self.write_data(rssi.as_bytes()).await?;
+            self.direct_write(rssi.as_bytes()).await?;
         }
-        self.write_data(b",").await?;
+        self.direct_write(b",").await?;
         if let Some(pci_enable) = config.pci_enable {
             if pci_enable {
-                self.write_data(b"1").await?;
+                self.direct_write(b"1").await?;
             } else {
-                self.write_data(b"2").await?;
+                self.direct_write(b"2").await?;
             }
         }
-        self.write_data(b",").await?;
+        self.direct_write(b",").await?;
         if let Some(reconnect_interval) = config.reconnect_interval {
             // TODO: Should I be using write!
             // And/or is there a better way?
             let mut string = String::<32>::new();
             write!(string, "{}", reconnect_interval)
                 .map_err(|_| GenericEspAtError::ATResponseInvalid)?;
-            self.write_data(string.as_bytes()).await?;
+            self.direct_write(string.as_bytes()).await?;
         }
-        self.write_data(b",").await?;
+        self.direct_write(b",").await?;
         if let Some(listen_interval) = config.listen_interval {
             let mut string = String::<32>::new();
             write!(string, "{}", listen_interval)
                 .map_err(|_| GenericEspAtError::ATResponseInvalid)?;
-            self.write_data(string.as_bytes()).await?;
+            self.direct_write(string.as_bytes()).await?;
         }
-        self.write_data(b",").await?;
+        self.direct_write(b",").await?;
         if let Some(scan_mode) = config.scan_mode {
             let write = match scan_mode {
                 ScanMode::Fast => b"0",
                 ScanMode::AllChannel => b"1",
             };
-            self.write_data(write).await?;
+            self.direct_write(write).await?;
         }
-        self.write_data(b",").await?;
+        self.direct_write(b",").await?;
         if let Some(timeout) = config.timeout {
             let mut string = String::<32>::new();
             write!(string, "{}", timeout)
                 .map_err(|_| GenericEspAtError::ATResponseInvalid)?;
-            self.write_data(string.as_bytes()).await?;
+            self.direct_write(string.as_bytes()).await?;
         }
-        self.write_data(b",").await?;
+        self.direct_write(b",").await?;
         if let Some(pmf) = config.pmf {
             let write = match pmf {
                 PMF::Disable => b"0",
                 PMF::Enable  => b"0", // TODO: ??? what on earth is the difference between "0" and "bit 0"
                 PMF::Require => b"1",
             };
-            self.write_data(write).await?;
+            self.direct_write(write).await?;
         }
         Ok(())
     }
@@ -178,7 +178,7 @@ where
         let mut reply = ReplyData::new();
         let mut end = 0;
         while end < 512 {
-            end += self.uart.read(&mut reply[end..]).await
+            end += self.uart.read(&mut reply[end..]).await // sdfsdfk
                 .map_err(|e| GenericEspAtError::EmbassyError(e))?;
 
             if reply.ends_with(b"OK\r\n") {
@@ -196,14 +196,21 @@ where
     }
 
     async fn write_line(&mut self, data: &[u8]) -> Result<(), GenericEspAtError> {
-        self.write_data(data).await?;
-        self.write_data(b"\r\n").await?;
+        self.direct_write(data).await?;
+        self.direct_write(b"\r\n").await?;
 
         Ok(())
     }
 
-    async fn write_data(&mut self, data: &[u8]) -> Result<(), GenericEspAtError> {
+    pub async fn direct_write(&mut self, data: &[u8]) -> Result<(), GenericEspAtError> {
         self.uart.write_all(data).await.map_err(|e| GenericEspAtError::EmbassyError(e))
+    }
+
+    pub async fn direct_read(&mut self) -> Result<ReplyData, GenericEspAtError> {
+        let mut reply = ReplyData::new();
+        self.uart.read_exact(&mut reply).await
+            .map_err(|e| GenericEspAtError::EmbassyError(e))?;
+        Ok(reply)
     }
 }
 
@@ -240,27 +247,27 @@ pub enum WifiMode {
 #[derive(Default)]
 pub struct ConnectionConfig<'a> {
     /// SSID of the AP to connect to (maximum of 32 characters)
-    ssid: Option<&'a str>,
+    pub ssid: Option<&'a str>,
     /// BSSID (MAC Address) of the AP to connect to. Required when there are two access
     /// points with the same SSID in range. (exactly 17 characters)
-    bssid: Option<&'a str>,
+    pub bssid: Option<&'a str>,
     /// Password of the AP to connect to (maximum of 32 characters)
-    password: Option<&'a str>,
+    pub password: Option<&'a str>,
     /// Received Signal Strength Indicator, the strength of the signal to be used when connecting to the AP
-    rssi: Option<&'a str>,
+    pub rssi: Option<&'a str>,
     /// PCI authentication enable
-    pci_enable: Option<bool>,
+    pub pci_enable: Option<bool>,
     /// The seconds between wifi reconnect attempts. Can be between 0 and 7200. Default is 1.
     /// When 0 will never attempt to reconnect.
-    reconnect_interval: Option<u16>,
+    pub reconnect_interval: Option<u16>,
     /// The interval of listening to the AP's beacon. Can be between 1 and 100. Default is 3.
-    listen_interval: Option<u16>,
+    pub listen_interval: Option<u16>,
     /// Scan Mode to use for finding the AP.
-    scan_mode: Option<ScanMode>,
+    pub scan_mode: Option<ScanMode>,
     /// Timeout in seconds for this command. Can be between 3 and 600. Default is 16.
-    timeout: Option<u16>,
+    pub timeout: Option<u16>,
     /// Protected Management Frames. Default is PMF::Disable
-    pmf: Option<PMF>,
+    pub pmf: Option<PMF>,
 }
 
 /// Scan Mode
