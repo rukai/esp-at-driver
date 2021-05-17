@@ -12,6 +12,6 @@ license = "MIT OR Apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-embassy-traits = { version = "0.1.0", git = "https://github.com/embassy-rs/embassy", rev = "632572d1cb29ab6badb87c74a95c120b4238f7c6", features = [] }
-embassy = { version = "0.1.0", git = "https://github.com/embassy-rs/embassy", rev = "632572d1cb29ab6badb87c74a95c120b4238f7c6", features = [] }
+embassy-traits = { version = "0.1.0", git = "https://github.com/embassy-rs/embassy", rev = "ccfcacaaa73634301f078448440c7414c28ea483", features = [] }
+embassy = { version = "0.1.0", git = "https://github.com/embassy-rs/embassy", rev = "ccfcacaaa73634301f078448440c7414c28ea483", features = [] }
 heapless = "0.7"
